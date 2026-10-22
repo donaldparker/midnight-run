@@ -5,5 +5,6 @@ export function mountAnimationLab(scene:MidnightScene,stage:HTMLElement,start:()
  const add=(label:string,fn:()=>void)=>{const b=document.createElement('button');b.textContent=label;b.style.cssText='font:12px monospace;padding:5px;color:#f2c70d;background:#101820;border:1px solid #f2c70d;';b.onclick=()=>{if(scene.status!=='riding')start();fn();};bar.append(b);};
  for(const move of ['punch','kick','club','chain'] as Move[])for(const side of [-1,1])add(`${move} ${side<0?'L':'R'}`,()=>scene.previewAction(move,side));
  for(const side of [-1,1])add(`Cop kick ${side<0?'L':'R'}`,()=>{bar.remove();scene.previewPolicePose(side);});
+ add('Rival punch',()=>{bar.remove();scene.previewRivalPose();});
  add('Police',()=>{bar.remove();scene.previewPolice();});add('Finish line',()=>{bar.remove();scene.previewFinishLine();});add('Traffic',()=>scene.previewTraffic());add('Finish',()=>{bar.remove();scene.previewEnding();});stage.append(bar);
 }

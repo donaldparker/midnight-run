@@ -36,3 +36,5 @@ button svg{width:20px;height:20px;display:block;flex:none;fill:none;stroke:curre
  #rotate{display:flex}#home,#touch,#ride-menu,.modal{visibility:hidden}
 }
 @media(min-width:951px) and (pointer:fine){#touch{display:none}}
+
+.difficulty-setting{margin:18px 0;padding:15px 0;border-top:1px solid #75672266;border-bottom:1px solid #75672266}.difficulty-setting label{font-size:11px;letter-spacing:.05em;margin:0 0 12px}.difficulty-setting strong{color:#f2c70d;font-size:14px}#difficulty{display:block;width:100%;height:26px;accent-color:#f2c70d;cursor:pointer;touch-action:pan-x}.difficulty-ends{display:flex;justify-content:space-between;font-size:8px;letter-spacing:.1em;color:#aeb39f}.difficulty-setting .hint{margin:12px 0 6px}.difficulty-setting small{display:block;font-size:10px;color:#8d978a;line-height:1.5}
