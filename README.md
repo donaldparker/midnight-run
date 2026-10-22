@@ -26,7 +26,8 @@ Build output is `dist/`. Production builds precache every emitted file, includin
 
 - Arrows / WASD: throttle, brake and lean. Forward cruise is automatic.
 - J: punch. K: kick. L: shillelagh (always available).
-- H: chain. Chain pickups give four charges; charges also decay over time. The mobile CHAIN button attacks with the chain when charges are available; STICK always uses the shillelagh.
+- H: chain. Chain pickups give four charges; charges also decay over time.
+- Repair kits (black case, yellow cross) on the road restore 30 armor. Every knockdown also restores 6 armor. The mobile CHAIN button attacks with the chain when charges are available; STICK always uses the shillelagh.
 - P: pause. R: a new run. Escape: home.
 - Phone: hold steer and throttle/brake buttons, tap attacks. Buttons support simultaneous fingers. Pause automatically on losing focus or hiding the page.
 

@@ -23,6 +23,7 @@ import {createArt} from '../actors/rider/art';
 import {newPolice,stepPolice,interruptPolice,newPoliceFight,policeHitDamage,registerPoliceHit,type Police} from '../actors/police/behavior';
 import {drawSky,THEMES} from '../scenery/sky';
 import {dawnAt} from '../core/dawn';
+import {itemKind,heal,REPAIR_KIT_HEAL,KNOCKDOWN_HEAL} from '../core/health';
 import {PLAYER_Z,RENDER_SCALE,RIDER_HEIGHT,RIDER_TEXTURE_HEIGHT} from './config';
 import {RoadView} from './views/road-view';
 import {riderScale,passingOpacity} from '../core/actor-projection';
@@ -31,7 +32,7 @@ import {Hud,type HudState} from './hud';
 import {PlayerInput} from './input';
 import {rideAudio} from './audio';
 interface Rival extends Fighter {texture:string;flashUntil:number;role:'race'|'road'}
-interface Item {distance:number;lane:number;kind:'chain'|'car';taken:boolean;speed:number}
+interface Item {distance:number;lane:number;kind:'chain'|'health'|'car';taken:boolean;speed:number}
 export interface RunResult {won:boolean;rank:number;score:number;time:number;seed:string;distance:number;reason?:'finish'|'armor'|'busted'}
 interface SceneOptions {level?:LevelDefinition;rider?:RiderDefinition;onReady?:()=>void;onHud?:(s:HudState)=>void;onEnd:(r:RunResult)=>void}
 export class MidnightScene extends Phaser.Scene {
@@ -68,7 +69,7 @@ export class MidnightScene extends Phaser.Scene {
   this.rivals=Array.from({length:7},(_,i)=>({...newRacer(`rival-${i}`,PLAYER_Z+1400+i*1750,[-.5,.65,-.3,.35][i%4],6900+this.rng()*3100),texture:['red','blue','white'][i%3],flashUntil:0,attackAt:2+i,role:'race',armor:this.combat.armor,strikeAt:0,strikeSide:1}));
   this.items=[];
   for(let d=6500;d<this.level.segments*SEGMENT-10000;d+=7000+this.rng()*6000){
-   const v=this.rng(),kind=v<.45?'chain':'car';
+   const kind=itemKind(this.rng());
    const oncoming=this.rng()>.45;
    this.items.push({distance:d,lane:kind==='car'?(oncoming?-.58:.6):(this.rng()-.5)*1.5,kind,taken:false,speed:kind==='car'?(oncoming?-2800:4500):0});
   }
@@ -124,7 +125,8 @@ export class MidnightScene extends Phaser.Scene {
     const crossed=(previousGap>=0&&gap<=0)||Math.abs(gap)<160;
     if(!crossed||Math.abs(item.lane-this.player.lane)>(item.kind==='car'?.34:.24))continue;
     item.taken=true;
-    if(item.kind==='chain'){this.charges.chain+=4;this.weapon='chain';this.callout('CHAIN +4');rideAudio.hit();}
+    if(item.kind==='health'){const before=this.player.armor;this.player.armor=heal(before,REPAIR_KIT_HEAL,this.rider.stats.maxArmor);this.callout(this.player.armor>before?`PATCHED UP +${Math.round(this.player.armor-before)}`:'ARMOR FULL +100');if(this.player.armor===before)this.score+=100;rideAudio.hit();}
+    else if(item.kind==='chain'){this.charges.chain+=4;this.weapon='chain';this.callout('CHAIN +4');rideAudio.hit();}
     else if(this.hurt(19,'TRAFFIC COLLISION',.48))addWanted(this.wanted,14);
    }
    if(this.player.armor<=0)this.finish(false,'armor');
@@ -177,7 +179,7 @@ export class MidnightScene extends Phaser.Scene {
   const spec=MOVES[move];const damage=Math.min(target.armor,spec.damage);target.armor-=spec.damage;addWanted(this.wanted,damage,target.id==='police');target.distance-=spec.knock;target.speed*=.93;target.flashUntil=this.elapsed+.15;
   this.combo=this.elapsed<this.comboUntil?Math.min(8,this.combo+1):1;this.comboUntil=this.elapsed+1.7;this.score+=75*this.combo;
   if(target.armor<=0){
-   target.downUntil=Infinity;target.armor=0;target.speed=1500;this.score+=500;this.callout('KNOCKDOWN +500');
+   target.downUntil=Infinity;target.armor=0;target.speed=1500;this.score+=500;this.player.armor=heal(this.player.armor,KNOCKDOWN_HEAL,this.rider.stats.maxArmor);this.callout(`KNOCKDOWN +500 · ARMOR +${KNOCKDOWN_HEAL}`);
    if(this.cop&&target.id==='police'){this.cop.active=false;this.nextPoliceAt=this.elapsed+pursuitDelay(wantedLevel(this.wanted));this.callout('PATROL SHAKEN OFF +500');}
    if(settings.shake)this.cameras.main.shake(90,.005);
   }else this.callout(`${move==='club'?'SHILLELAGH':move.toUpperCase()}! +${75*this.combo}`);

@@ -53,5 +53,7 @@ export function createArt(scene:Phaser.Scene) {
     r(14,74,132,6,'#29323a');r(20,75,120,2,'#9caaa6');r(8,39,11,7,'#1c2932');r(141,39,11,7,'#1c2932');
   });
   make('oil',32,14,(r)=>{r(5,3,21,10,'#101622');r(1,6,30,5,'#101622');r(8,5,11,2,'#46445a');r(21,8,6,2,'#3e4160');});
+  // Repair kit: black case with a club-yellow cross, readable at a distance on dark roads.
+  make('health',22,20,(r)=>{r(1,3,20,16,'#0d1116');r(2,4,18,14,'#1e252c');r(8,0,6,4,'#0d1116');r(9,1,4,2,'#5e6870');r(9,6,4,10,'#f2c70d');r(5,9,12,4,'#f2c70d');r(2,4,18,1,'#3a444c');});
   for(const [k,col] of [['chain','#9ac6df']] as const)make(k,20,23,(r)=>{r(3,2,14,18,'#151c24');r(1,5,18,12,col);r(4,2,12,18,col);r(5,6,10,10,'#151c24');r(7,5,3,5,col);r(10,10,3,6,col);});
 }
