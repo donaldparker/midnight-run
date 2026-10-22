@@ -6,6 +6,7 @@ import {newRacer,stepPlayer,rank} from '../core/race';
 import {encounterCount,carScale} from '../core/encounters';
 import {newWanted,addWanted,coolWanted,wantedLevel,pursuitDelay} from '../core/wanted';
 import {rivalFight,RIVAL_ARMOR,type Fighter} from '../actors/rival/behavior';
+import {policeTexture} from '../actors/police/poses';
 import {PoliceView} from './views/police-view';
 import {FinishView} from './views/finish-view';
 import {settings} from '../core/settings';
@@ -15,7 +16,7 @@ import {EndingView} from './views/ending-view';
 import {ANIMATION_ART,riderTexture,contactAt,duration,OUTRO_TIMES} from '../actors/rider/poses';
 import {bakeAnimationArt} from '../actors/rider/animation-art';
 import {createArt} from '../actors/rider/art';
-import {newPolice,stepPolice,type Police} from '../actors/police/behavior';
+import {newPolice,stepPolice,interruptPolice,newPoliceFight,policeHitDamage,registerPoliceHit,type Police} from '../actors/police/behavior';
 import {drawSky,THEMES} from '../scenery/sky';
 import {PLAYER_Z,RENDER_SCALE,RIDER_HEIGHT,RIDER_TEXTURE_HEIGHT} from './config';
 import {RoadView} from './views/road-view';
@@ -33,7 +34,7 @@ export class MidnightScene extends Phaser.Scene {
  road:Segment[]=[];player=newRacer('ian');rivals:Rival[]=[];cop:Police|null=null;
  seed='';elapsed=0;score=0;combo=0;comboUntil=0;charges={chain:0};weapon:HeldWeapon='club';
  status:'home'|'riding'|'paused'|'ending'|'arresting'|'finished'='home';
- wanted=newWanted();private arrestAge=0;private policeView!:PoliceView;private finishView!:FinishView;
+ private policeFight=newPoliceFight();wanted=newWanted();private arrestAge=0;private policeView!:PoliceView;private finishView!:FinishView;
  private items:Item[]=[];private world!:Phaser.GameObjects.Graphics;private effects!:Phaser.GameObjects.Graphics;
  private roadView!:RoadView;private actors!:ActorsView;private hud!:Hud;private controls!:PlayerInput;
  private weaponView!:WeaponView;private ending!:EndingView;private playerSprite!:Phaser.GameObjects.Image;
@@ -67,7 +68,7 @@ export class MidnightScene extends Phaser.Scene {
   }
   this.pan=0;this.decayAt=12;this.elapsed=0;this.score=0;this.combo=0;this.comboUntil=0;this.cooldown=0;this.invulnerable=0;
   this.attackStarted=-10;this.pendingAttack=null;this.charges={chain:0};this.weapon='club';this.cop=null;
-  this.wanted=newWanted();this.arrestAge=0;this.lastRoadGang=0;this.roadGangId=0;this.nextPoliceAt=0;this.endingAge=0;this.result=null;
+  this.wanted=newWanted();this.policeFight=newPoliceFight();this.arrestAge=0;this.lastRoadGang=0;this.roadGangId=0;this.nextPoliceAt=0;this.endingAge=0;this.result=null;
   this.ending?.hide();this.playerSprite?.setVisible(true);this.status='riding';
   this.message=matchMedia('(pointer:coarse), (max-width:950px)').matches?'HOLD GAS TO THROTTLE':'HOLD W TO THROTTLE';this.messageUntil=4;this.controls?.clear();
  }
@@ -134,7 +135,12 @@ export class MidnightScene extends Phaser.Scene {
   if(wantedLevel(this.wanted)>0&&(!this.cop||!this.cop.active)&&this.elapsed>=this.nextPoliceAt){this.cop=newPolice(this.player);this.callout('POLICE! THROTTLE TO ESCAPE');}
   if(!this.cop?.active)return;
   const outcome=stepPolice(this.cop,this.player,dt,wantedLevel(this.wanted));
-  if(outcome==='kick'&&this.hurt(10,'POLICE KICK',.6)){this.status='arresting';this.arrestAge=0;this.pendingAttack=null;this.controls.clear();rideAudio.update(0,false);}
+  if(this.cop.kickAt>0)this.callout('COP WINDING UP — DODGE OR STRIKE!');
+  if(outcome==='kick'){
+   const landed=this.hurt(policeHitDamage(this.player.armor),'POLICE KICK',.95);
+   if(registerPoliceHit(this.policeFight,landed)){this.status='arresting';this.arrestAge=0;this.pendingAttack=null;this.controls.clear();rideAudio.update(0,false);}
+   else if(landed)this.callout(`COP HIT ${this.policeFight.hits}/5 — FIGHT BACK!`);
+  }
   else if(outcome==='escaped'){this.score+=350;this.wanted.heat=Math.max(0,this.wanted.heat-28);this.wanted.quiet=0;this.nextPoliceAt=this.elapsed+pursuitDelay(wantedLevel(this.wanted));this.callout('POLICE EVADED +350');}
  }
  private callout(message:string){this.message=message;this.messageUntil=this.elapsed+2;}
@@ -157,6 +163,7 @@ export class MidnightScene extends Phaser.Scene {
   const target=this.targets().filter(r=>strike(move,r.distance-this.player.distance,r.lane-this.player.lane,side))
    .sort((a,b)=>Math.abs(a.distance-this.player.distance)-Math.abs(b.distance-this.player.distance))[0];
   if(!target)return;
+  if(target.id==='police'&&this.cop)interruptPolice(this.cop);
   const spec=MOVES[move];const damage=Math.min(target.armor,spec.damage);target.armor-=spec.damage;addWanted(this.wanted,damage,target.id==='police');target.distance-=spec.knock;target.speed*=.93;target.flashUntil=this.elapsed+.15;
   this.combo=this.elapsed<this.comboUntil?Math.min(8,this.combo+1):1;this.comboUntil=this.elapsed+1.7;this.score+=75*this.combo;
   if(target.armor<=0){
@@ -175,6 +182,7 @@ export class MidnightScene extends Phaser.Scene {
  /** Development-only controls for checking every frame and the ending without racing a whole route. */
  previewAction(move:Move,side?:number){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();this.charges.chain=8;this.cooldown=0;this.attack(move);if(side){this.attackSide=side;if(this.pendingAttack)this.pendingAttack.side=side;}}
  previewPolice(){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();addWanted(this.wanted,35);this.cop=newPolice(this.player);this.cop.distance=this.player.distance+500;this.callout('POLICE PURSUIT');}
+ previewPolicePose(side:number){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();this.cop=newPolice(this.player);this.cop.distance=this.player.distance+60;this.cop.lane=this.player.lane-side*.32;this.cop.kickSide=side;this.cop.attackStarted=0;this.cop.pursuitAge=1.1;this.cop.kickUntil=1.7;this.status='paused';this.controls.clear();this.callout('POLICE KICK — SPRITE PREVIEW');}
  previewTraffic(){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();this.items.push({distance:this.player.distance+2000,lane:-.58,kind:'car',taken:false,speed:0});}
  previewEnding(){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();this.player.distance=this.level.segments*SEGMENT;this.finish(true,'finish');}
  previewFinishLine(){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();this.player.distance=this.level.segments*SEGMENT-17000;this.player.speed=3600;this.cop=null;this.wanted=newWanted();}
@@ -194,7 +202,7 @@ export class MidnightScene extends Phaser.Scene {
   };
   for(const item of this.items)if(!item.taken)place(item.distance,item.lane,item.kind==='car'&&item.speed>0?'car-rear':item.kind);
   for(const r of this.rivals)if(r.distance>this.player.distance-650&&r.distance<distance+35000)place(r.distance,r.lane,r.texture,this.elapsed<r.flashUntil,r.armor<=0?75:r.strikeAt>0?-r.strikeSide*16:Math.sin(this.elapsed+r.distance*.0001)*3,true);
-  if(this.cop?.active)place(this.cop.distance,this.cop.lane,'police',this.elapsed<this.cop.flashUntil,0,true);
+  if(this.cop?.active)place(this.cop.distance,this.cop.lane,policeTexture(this.cop),this.elapsed<this.cop.flashUntil,0,true);
   objects.sort((a,b)=>a.y-b.y);this.actors.begin();for(const item of objects)this.actors.draw(item);this.actors.end();
   const steer=this.status==='riding'?this.controls.steerHeld():0,bob=this.status==='riding'&&this.player.speed>500?Math.sin(this.elapsed*24)*.65:0;
   const age=this.elapsed-this.attackStarted,pose=riderTexture(this.weapon,this.attackMove,age,this.attackSide);
@@ -206,6 +214,6 @@ export class MidnightScene extends Phaser.Scene {
   if(cp&&this.cop){const scale=riderScale(this.cop.distance-distance,PLAYER_Z,RIDER_HEIGHT,RIDER_TEXTURE_HEIGHT);this.policeView.draw(this.cop,cp.p.x+cp.p.w*this.cop.lane,cp.p.y,320*scale,Math.min(cp.clip,244),passingOpacity(this.cop.distance-this.player.distance));}else this.policeView.draw(null);
   this.finishView.draw(this.roadView.sample(this.level.segments*SEGMENT-SEGMENT*12));
   this.weaponView.draw({move:this.attackMove,side:this.attackSide,age});
-  this.hud.update({speed:this.player.speed,rank:this.raceRank(),checkpoint:Math.min(8,1+Math.floor(this.player.distance/(this.level.segments*SEGMENT/8))),armor:this.player.armor,combo:this.combo,score:this.score,weapon:this.weapon==='club'?'SHILLELAGH':'CHAIN',charges:this.weapon==='chain'?this.charges.chain:0,progress:Math.min(1,this.player.distance/(this.level.segments*SEGMENT)),seed:this.seed,zone:THEMES[zone].name,time:this.elapsed,wanted:wantedLevel(this.wanted),police:this.cop?.active?{gap:this.cop.distance-this.player.distance,bust:this.cop.bust}:null,message:this.elapsed<this.messageUntil?this.message:this.targets().some(r=>Math.abs(r.distance-this.player.distance)<900&&Math.abs(r.lane-this.player.lane)<.7)?'RIVAL IN RANGE - STRIKE!':''});
+  this.hud.update({speed:this.player.speed,rank:this.raceRank(),checkpoint:Math.min(8,1+Math.floor(this.player.distance/(this.level.segments*SEGMENT/8))),armor:this.player.armor,combo:this.combo,score:this.score,weapon:this.weapon==='club'?'SHILLELAGH':'CHAIN',charges:this.weapon==='chain'?this.charges.chain:0,progress:Math.min(1,this.player.distance/(this.level.segments*SEGMENT)),seed:this.seed,zone:THEMES[zone].name,time:this.elapsed,wanted:wantedLevel(this.wanted),police:this.cop?.active?{gap:this.cop.distance-this.player.distance,bust:this.cop.bust,hits:this.policeFight.hits}:null,message:this.elapsed<this.messageUntil?this.message:this.targets().some(r=>Math.abs(r.distance-this.player.distance)<900&&Math.abs(r.lane-this.player.lane)<.7)?'RIVAL IN RANGE - STRIKE!':''});
  }
 }

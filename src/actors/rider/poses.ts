@@ -4,6 +4,7 @@ export const ANIMATION_ART={
  'chain-right':'/assets/chain-right-sheet.png','chain-left':'/assets/chain-left-sheet.png',
  'punch-right':'/assets/punch-right-sheet.png','punch-left':'/assets/punch-left-sheet.png',
  'kick-right':'/assets/kick-right-sheet.png','kick-left':'/assets/kick-left-sheet.png',
+ 'police-kick-left':'/assets/police-kick-left-sheet.png','police-kick-right':'/assets/police-kick-right-sheet.png',
  'outro':'/assets/ian-outro-sheet.png',
 } as const;
 export const FRAME_TIMES:Record<Move,readonly number[]>={
