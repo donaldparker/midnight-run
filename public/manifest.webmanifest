@@ -1,0 +1,17 @@
+{
+  "name": "Midnight Run",
+  "short_name": "Midnight Run",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080d12",
+  "theme_color": "#f2c70d",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "orientation": "landscape"
+}

@@ -1,0 +1,33 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# IDEs and Text Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Environmental secrets (API keys, credentials)
+.env
+.env.local
+.env.*.local
+
+# Common dependency folders (uncomment if applicable)
+# node_modules/
+# venv/
+# .venv/
+.idea

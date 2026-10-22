@@ -1,0 +1,16 @@
+import { settings,saveSettings } from '../core/settings';
+import type {HudState} from '../game/hud';
+import type { RunResult } from '../game/midnight-scene';
+export const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
+export function mountShell(callbacks:{start:()=>void;home:()=>void;resume:()=>void;pause:()=>void}){
+ el('mobile-pause').addEventListener('click',callbacks.pause);el('ride-menu').addEventListener('click',callbacks.pause);
+ const phone=()=>matchMedia('(pointer:coarse), (max-width:950px)').matches;
+ const show=(id:string,visible:boolean)=>{el(id).hidden=!visible;};
+ for(const id of ['start','again'])el(id).addEventListener('click',callbacks.start);
+ for(const id of ['pause-home','result-home'])el(id).addEventListener('click',callbacks.home);
+ el('resume').addEventListener('click',callbacks.resume);
+ el('settings').addEventListener('click',()=>{show('settings-panel',true);el<HTMLInputElement>('audio').checked=settings.audio;el<HTMLInputElement>('shake').checked=settings.shake;el<HTMLInputElement>('seed').value=settings.seed;el<HTMLInputElement>('audio').focus();});
+ el('close-settings').addEventListener('click',()=>{settings.audio=el<HTMLInputElement>('audio').checked;settings.shake=el<HTMLInputElement>('shake').checked;settings.seed=el<HTMLInputElement>('seed').value.trim();saveSettings();show('settings-panel',false);el('settings').focus();});
+ el('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await el('stage').requestFullscreen();}catch{el('fullscreen').textContent='FULLSCREEN UNAVAILABLE';}});
+ return {updateHud(s:HudState){for(const [id,value] of Object.entries({'mobile-zone':s.zone+(s.wanted?' · '+ '★'.repeat(s.wanted):''),'mobile-checkpoint':`${s.checkpoint} / 8`,'mobile-callout':s.message||'Pull alongside a rival to strike.','mobile-speed':`${Math.round(s.speed/100)} MPH`,'mobile-rank':`${s.rank} / 8`,'mobile-armor':`${Math.round(s.armor)}%`,'mobile-gear':`${s.weapon.toUpperCase()} · ${s.charges?`${s.charges} CHARGES`:'ALWAYS READY'} · ${s.score} PTS`}))if(el(id).textContent!==value)el(id).textContent=value;el('mobile-progress').style.width=`${s.progress*100}%`;},home(){show('home',true);show('ride-menu',false);show('pause',false);show('result',false);show('touch',false);show('mobile-hud',false);show('mobile-gear',false);show('mobile-route',false);el('start').focus();},start(){show('home',false);show('ride-menu',true);show('pause',false);show('result',false);show('touch',phone());show('mobile-hud',true);show('mobile-gear',true);show('mobile-route',true);(document.activeElement as HTMLElement)?.blur();},pause(paused:boolean){show('pause',paused);show('touch',!paused&&phone());if(paused)el('resume').focus();},result(r:RunResult){show('result',true);show('ride-menu',false);show('touch',false);el('result-title').textContent=r.won?'RUN COMPLETE':r.reason==='busted'?'BUSTED':'WIPED OUT';el('result-kicker').textContent=r.won?'YOU MADE IT THROUGH THE NIGHT':r.reason==='busted'?'THE PATROL ENDED YOUR RUN':'THE ROAD WINS THIS ROUND';el('result-stats').textContent=`Position ${r.rank}/8 · ${r.score.toLocaleString()} points · ${r.time.toFixed(1)} seconds. Road seed: ${r.seed}.`;el('again').focus();}};
+}

@@ -1,0 +1,2 @@
+export interface LevelDefinition {readonly id:string;readonly name:string;readonly segments:number;readonly checkpoints:number;readonly copy:{readonly tagline:string;readonly description:string}}
+export const MIDNIGHT:LevelDefinition={id:'midnight',name:'Midnight Run',segments:2800,checkpoints:8,copy:{tagline:'Open roads. Mountain passes. Your midnight run.',description:'A new road through the mountains, desert and coast. Every ride.'}};

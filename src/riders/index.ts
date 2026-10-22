@@ -1,0 +1,2 @@
+export interface RiderDefinition {readonly id:string; readonly name:string; readonly texture:string; readonly stats:{readonly cruiseSpeed:number;readonly boostSpeed:number;readonly acceleration:number;readonly brakeDeceleration:number;readonly steerSpeed:number;readonly maxArmor:number}}
+export const IAN:RiderDefinition={id:'ian',name:'Ian',texture:'ian',stats:{cruiseSpeed:7900,boostSpeed:11200,acceleration:2700,brakeDeceleration:7600,steerSpeed:1.5,maxArmor:100}};
