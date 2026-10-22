@@ -1,7 +1,5 @@
-/** Ways for Ian to recover armor during a long ride. */
-export const REPAIR_KIT_HEAL=30;
-export const KNOCKDOWN_HEAL=6;
+/** Ways for Ian to recover armor; amounts come from the difficulty setting. */
 export type ItemKind='chain'|'health'|'car';
-/** Roadside drops: roughly a third chains, a quarter repair kits, the rest traffic. */
-export function itemKind(roll:number):ItemKind {return roll<.32?'chain':roll<.57?'health':'car';}
+/** Roadside drops: about a third chains, a difficulty-scaled share of repair kits, the rest traffic. */
+export function itemKind(roll:number,kitShare:number):ItemKind {return roll<.32?'chain':roll<.32+kitShare?'health':'car';}
 export function heal(armor:number,amount:number,max:number):number {return Math.max(0,Math.min(max,armor+Math.max(0,amount)));}
