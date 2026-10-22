@@ -22,6 +22,7 @@ import {bakeAnimationArt} from '../actors/rider/animation-art';
 import {createArt} from '../actors/rider/art';
 import {newPolice,stepPolice,interruptPolice,newPoliceFight,policeHitDamage,registerPoliceHit,type Police} from '../actors/police/behavior';
 import {drawSky,THEMES} from '../scenery/sky';
+import {dawnAt} from '../core/dawn';
 import {PLAYER_Z,RENDER_SCALE,RIDER_HEIGHT,RIDER_TEXTURE_HEIGHT} from './config';
 import {RoadView} from './views/road-view';
 import {riderScale,passingOpacity} from '../core/actor-projection';
@@ -112,7 +113,7 @@ export class MidnightScene extends Phaser.Scene {
     else {const target=r.role==='race'?7800+Number(r.id.slice(-1))*230:6200+Number(r.id.slice(-1))%4*180;r.speed+=Math.max(-900*dt,Math.min(900*dt,target-r.speed));}
     r.distance+=r.speed*dt;
     if(!activeRivals.has(r)&&r.strikeAt)interruptRival(r,this.elapsed);
-    if(activeRivals.has(r)&&rivalFight(r,this.player,this.elapsed,dt,this.combat))this.hurt(r.strikeMove==='kick'?8:7,`RIVAL ${(r.strikeMove??'punch').toUpperCase()}`,.96);
+    if(activeRivals.has(r)&&rivalFight(r,this.player,this.elapsed,dt,this.combat))this.hurt(r.strikeMove==='kick'?10:8,`RIVAL ${(r.strikeMove??'punch').toUpperCase()}`,.96);
    }
    this.keepRoadAlive();this.updatePolice(dt);
    if(this.status!=='riding')return;
@@ -140,7 +141,7 @@ export class MidnightScene extends Phaser.Scene {
   for(let i=0;i<count;i++){const serial=this.roadGangId++;this.rivals.push({...newRacer(`road-${serial}`,this.player.distance+7500+i*3800,[-.6,.6,-.25,.3][serial%4],6000+this.rng()*800),role:'road',texture:['red','blue','white'][serial%3],flashUntil:0,attackAt:this.elapsed+3,armor:this.combat.armor,strikeAt:0,strikeSide:1});}
  }
  private updatePolice(dt:number){
-  if(wantedLevel(this.wanted)>0&&(!this.cop||!this.cop.active)&&this.elapsed>=this.nextPoliceAt){this.cop=newPolice(this.player);this.callout('POLICE! THROTTLE TO ESCAPE');}
+  if(wantedLevel(this.wanted)>0&&(!this.cop||!this.cop.active)&&this.elapsed>=this.nextPoliceAt){this.cop=newPolice(this.player,this.combat.armor+14);this.callout('POLICE! THROTTLE TO ESCAPE');}
   if(!this.cop?.active)return;
   const outcome=stepPolice(this.cop,this.player,dt,wantedLevel(this.wanted));
   if(this.cop.kickAt>0)this.callout('COP WINDING UP — DODGE OR STRIKE!');
@@ -190,8 +191,8 @@ export class MidnightScene extends Phaser.Scene {
  }
  /** Development-only controls for checking every frame and the ending without racing a whole route. */
  previewAction(move:Move,side?:number){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();this.charges.chain=8;this.cooldown=0;this.attack(move);if(side){this.attackSide=side;if(this.pendingAttack)this.pendingAttack.side=side;}}
- previewPolice(){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();addWanted(this.wanted,35);this.cop=newPolice(this.player);this.cop.distance=this.player.distance+500;this.callout('POLICE PURSUIT');}
- previewPolicePose(side:number){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();this.cop=newPolice(this.player);this.cop.distance=this.player.distance+60;this.cop.lane=this.player.lane-side*.32;this.cop.kickSide=side;this.cop.attackStarted=0;this.cop.pursuitAge=1.1;this.cop.kickUntil=1.7;this.status='paused';this.controls.clear();this.callout('POLICE KICK — SPRITE PREVIEW');}
+ previewPolice(){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();addWanted(this.wanted,35);this.cop=newPolice(this.player,this.combat.armor+14);this.cop.distance=this.player.distance+500;this.callout('POLICE PURSUIT');}
+ previewPolicePose(side:number){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();this.cop=newPolice(this.player,this.combat.armor+14);this.cop.distance=this.player.distance+60;this.cop.lane=this.player.lane-side*.32;this.cop.kickSide=side;this.cop.attackStarted=0;this.cop.pursuitAge=1.1;this.cop.kickUntil=1.7;this.status='paused';this.controls.clear();this.callout('POLICE KICK — SPRITE PREVIEW');}
  previewRivalPose(){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();this.rivals[0]={...this.rivals[0],distance:this.player.distance+60,lane:this.player.lane-.32,strikeSide:1,strikeMove:'punch',strikeStarted:this.elapsed-.7,strikeAt:0,strikeUntil:this.elapsed+.3};this.status='paused';this.controls.clear();this.callout('RIVAL PUNCH — SPRITE PREVIEW');}
  previewTraffic(){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();this.items.push({distance:this.player.distance+2000,lane:-.58,kind:'car',taken:false,speed:0});}
  previewEnding(){if(!import.meta.env.DEV)return;if(this.status!=='riding')this.startRun();this.player.distance=this.level.segments*SEGMENT;this.finish(true,'finish');}
@@ -199,7 +200,8 @@ export class MidnightScene extends Phaser.Scene {
  private renderWorld(){
   if(!this.road.length||this.status==='ending')return;
   const distance=Math.max(0,this.player.distance-PLAYER_Z),base=Math.floor(distance/SEGMENT),zone=this.road[Math.min(base,this.road.length-1)].zone;
-  this.world.clear();drawSky(this.world,zone,this.pan);this.roadView.draw(this.road,distance,this.player.lane);
+  const dawn=dawnAt(this.player.distance/(this.level.segments*SEGMENT));
+  this.world.clear();drawSky(this.world,zone,this.pan,dawn);this.roadView.draw(this.road,distance,this.player.lane,dawn);
   const objects:SpriteItem[]=[];
   for(const point of this.roadView.points.values()){
    const s=this.road[point.index],p=point.p;

@@ -2,7 +2,7 @@ import {combatDifficulty,type CombatDifficulty} from '../../core/difficulty';
 import type {Racer} from '../../core/race';
 export interface Fighter extends Racer {strikeAt:number;strikeSide:number;strikeStarted?:number;strikeUntil?:number;strikeMove?:'punch'|'kick';strikeWindup?:number}
 export const RIVAL_ARMOR=14;
-export function interruptRival(r:Fighter,time:number):void {r.strikeAt=0;r.strikeStarted=undefined;r.strikeUntil=0;r.attackAt=time+1.8;}
+export function interruptRival(r:Fighter,time:number):void {r.strikeAt=0;r.strikeStarted=undefined;r.strikeUntil=0;r.attackAt=time+1.2;}
 /** Nearby bikers spar alongside Ian; windup locks their lane so attacks can be dodged. */
 export function rivalFight(r:Fighter,player:Racer,time:number,dt:number,difficulty:CombatDifficulty=combatDifficulty(3)):boolean {
  if(r.armor<=0)return false;

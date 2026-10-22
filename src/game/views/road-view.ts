@@ -2,18 +2,18 @@ import Phaser from 'phaser';
 import { SEGMENT,ROAD_WIDTH,type Segment } from '../../levels/build-level';
 import { projectGround,type ProjectedPoint } from '../../core/projection';
 import { DRAW_DISTANCE,CAMERA_HEIGHT,PLAYER_Z } from '../config';
-import { THEMES } from '../../scenery/sky';
+import { skyTheme } from '../../scenery/sky';
 import { sampleRoad,type RoadSample } from '../../core/actor-projection';
 export type RoadPoint=RoadSample;
 export class RoadView {
  points=new Map<number,RoadPoint>();pan=0;
  constructor(private g:Phaser.GameObjects.Graphics){}
- draw(road:Segment[],distance:number,lane:number){
+ draw(road:Segment[],distance:number,lane:number,dawn=0){
   const g=this.g;const base=Math.floor(distance/SEGMENT);const pct=distance/SEGMENT-base;
   const a=road[Math.min(base,road.length-1)];
   const at=(distance+PLAYER_Z)/SEGMENT,pi=Math.min(road.length-2,Math.floor(at)),pt=at-Math.floor(at);
   const cameraY=road[pi].y+(road[pi+1].y-road[pi].y)*pt+CAMERA_HEIGHT;
-  const t=THEMES[a.zone];let x=0,dx=-a.curve*pct,maxY=270;
+  const t=skyTheme(a.zone,dawn);let x=0,dx=-a.curve*pct,maxY=270;
   this.points.clear();this.pan=distance*.00003+lane*.3;
   for(let n=1;n<DRAW_DISTANCE;n++){
    const i=base+n;if(i>=road.length-1)break;const s=road[i],next=road[i+1];
